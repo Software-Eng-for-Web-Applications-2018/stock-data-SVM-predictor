@@ -12,6 +12,7 @@
 #Based upon examples from the tensorflow cookbook
 
 import os
+import argparse;
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -28,6 +29,10 @@ from SupportPredictorFunctions import GetStockDataList, SaveModelAndQuit
 ops.reset_default_graph()
 tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
 tf.app.flags.DEFINE_string('work_dir', '', 'Working directory.')
+tf.app.flags.DEFINE_string('sym', '', 'Stock Symbol')  
+tf.app.flags.DEFINE_integer('shiftamount', 1, 'Amount of time we wish to attept to predict into the future')
+tf.app.flags.DEFINE_integer('DEBUG', 0, 'Enable the debugging output') 
+
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -75,7 +80,7 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     Xdata_train = np.array([x[0] for x in Xdata_train])
     Xdata_test = np.array([x[0] for x in Xdata_test])
 
-    # XdataTrainTest = [Xdata_train, Xdata_test]
+    #XdataTrainTest = [Xdata_train, Xdata_test]
     #Roll seems to be rolling several axes for some damn reason. 
     Ydata_train = np.array([y[2] for y in Ydata_train])
     Ydata_test = np.array([y[2] for y in Ydata_test])
@@ -83,16 +88,16 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     # YdataTrainTest = [Ydata_train, Ydata_test]
 
     if(DEBUG == 1):
-        print("Xdata\n");
-        print(Xdata)
+        print("Xdata_train\n");
+        print(Xdata_train)
         print("\n");
-        print("Ydata")
-        print(Ydata)
+        print("Ydata_train")
+        print(Ydata_train)
         print("\n")
 
     batch_size = 50
 
-    # NumElementsPerRow = X_train.shape[1]
+    #NumElementsPerRow = Xdata_train.shape[1]
     # NumElementsOut = y_train.shape[0]
 
     # if(DEBUG == 1):
@@ -100,7 +105,7 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     #     print("NumElementsPerRow " + str(NumElementsPerRow) + " NumElementsOut " + str(NumElementsOut))
 
     # Initialize placeholders
-    X = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+    X = tf.placeholder(shape=[None,1], dtype=tf.float32)
     Y = tf.placeholder(shape=[None,1], dtype=tf.float32)
 
     # Create variables for linear regression
@@ -134,6 +139,8 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
         rand_index = np.random.choice(len(Xdata_train), size=batch_size)
         rand_x = np.transpose([Xdata_train[rand_index]])
         rand_y = np.transpose([Ydata_train[rand_index]])
+        #rand_x = Xdata_train[rand_index]
+        #rand_y = Ydata_train[rand_index]
         sess.run(train_step, feed_dict={X: rand_x, Y: rand_y})
         
         temp_train_loss = sess.run(loss, feed_dict={X: np.transpose([Xdata_train]), Y: np.transpose([Ydata_train])})
@@ -192,7 +199,7 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     #SaveModelAndQuit(sess,ModelName)
 
      # Export model
-    export_path_base = FLAGS.work_dir
+    export_path_base = FLAGS.work_dir + 'SVM_' + stocksym
     export_path = os.path.join(tf.compat.as_bytes(export_path_base),tf.compat.as_bytes(str(FLAGS.model_version)))
     #export_path = ModelName + '/' + export_path 
     print('Exporting trained model to', export_path)
@@ -222,4 +229,19 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     sys.exit(0)
 
 
-TrainSVMLinearRegression(session,StockPriceMinute,'AMD',1,1)
+def main():
+
+    #user input
+    # learning rate 
+    parser = argparse.ArgumentParser();
+    parser.add_argument('--sym', dest= 'sym', default='');
+    parser.add_argument('--DEBUG',type=int, dest= 'debug', default=0);
+    parser.add_argument('--shiftamount',type=int, dest= 'shiftamount', default=1);
+    args = parser.parse_args();
+
+    print("Input Arguments: ") 
+    print(args)
+
+    TrainSVMLinearRegression(session,StockPriceMinute,args.sym,args.shiftamount,args.debug);
+
+main();

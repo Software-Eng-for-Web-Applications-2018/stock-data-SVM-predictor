@@ -24,6 +24,6 @@ def ShitftAmount(Inputarray, shiftamount):
     #This will barrel shift the input array by the given amount. It will shift only the other array! 
     #The shifted array is then trimed by the shiftamount 
     #Do a barrel roll!
-    Inputarray = np.roll(Inputarray,shiftamount,axis=1)
+    #Outarray = np.roll(Inputarray,shiftamount,axis=0)
 
     return TrimArray(Inputarray, shiftamount)
