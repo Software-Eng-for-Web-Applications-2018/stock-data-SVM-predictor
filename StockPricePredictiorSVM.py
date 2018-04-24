@@ -1,15 +1,17 @@
 # SVM Regression
-#----------------------------------
-#
-# This function shows how to use TensorFlow to
-# solve support vector regression. We are going
-# to find the line that has the maximum margin
-# which INCLUDES as many points as possible
-#
-# We will use the iris data, specifically:
-#  y = Sepal Length
-#  x = Pedal Width
 
+#
+# CREATED BY JOHN GRUN
+#   APRIL 21 2018 
+#
+# TESTED BY JOHN GRUN
+#
+#MODIFIED BY JOHN GRUN 
+#
+
+#Based upon examples from the tensorflow cookbook
+
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -24,6 +26,9 @@ from SupportPredictorFunctions import GetStockDataList, SaveModelAndQuit
 
 
 ops.reset_default_graph()
+tf.app.flags.DEFINE_integer('model_version', 1, 'version number of the model.')
+tf.app.flags.DEFINE_string('work_dir', '', 'Working directory.')
+FLAGS = tf.app.flags.FLAGS
 
 
 def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,DEBUG):
@@ -95,22 +100,22 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     #     print("NumElementsPerRow " + str(NumElementsPerRow) + " NumElementsOut " + str(NumElementsOut))
 
     # Initialize placeholders
-    x_data = tf.placeholder(shape=[None, 1], dtype=tf.float32)
-    y_target = tf.placeholder(shape=[None,1], dtype=tf.float32)
+    X = tf.placeholder(shape=[None, 1], dtype=tf.float32)
+    Y = tf.placeholder(shape=[None,1], dtype=tf.float32)
 
     # Create variables for linear regression
     A = tf.Variable(tf.random_normal(shape=[1,1]))
     b = tf.Variable(tf.random_normal(shape=[1,1]))
 
     # Declare model operations
-    model_output = tf.add(tf.matmul(x_data, A), b)
+    Out = tf.add(tf.matmul(X, A), b)
 
     # Declare loss function
     # = max(0, abs(target - predicted) + epsilon)
     # 1/2 margin width parameter = epsilon
     epsilon = tf.constant([0.5])
     # Margin term in loss
-    loss = tf.reduce_mean(tf.maximum(0., tf.subtract(tf.abs(tf.subtract(model_output, y_target)), epsilon)))
+    loss = tf.reduce_mean(tf.maximum(0., tf.subtract(tf.abs(tf.subtract(Out, Y)), epsilon)))
 
     # Declare optimizer
     my_opt = tf.train.GradientDescentOptimizer(0.075)
@@ -129,12 +134,12 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
         rand_index = np.random.choice(len(Xdata_train), size=batch_size)
         rand_x = np.transpose([Xdata_train[rand_index]])
         rand_y = np.transpose([Ydata_train[rand_index]])
-        sess.run(train_step, feed_dict={x_data: rand_x, y_target: rand_y})
+        sess.run(train_step, feed_dict={X: rand_x, Y: rand_y})
         
-        temp_train_loss = sess.run(loss, feed_dict={x_data: np.transpose([Xdata_train]), y_target: np.transpose([Ydata_train])})
+        temp_train_loss = sess.run(loss, feed_dict={X: np.transpose([Xdata_train]), Y: np.transpose([Ydata_train])})
         train_loss.append(temp_train_loss)
         
-        temp_test_loss = sess.run(loss, feed_dict={x_data: np.transpose([Xdata_test]), y_target: np.transpose([Ydata_test])})
+        temp_test_loss = sess.run(loss, feed_dict={X: np.transpose([Xdata_test]), Y: np.transpose([Ydata_test])})
         test_loss.append(temp_test_loss)
 
         if(DEBUG == 1):
@@ -184,7 +189,37 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
         plt.show()
 
     ModelName = 'SVM'+ stocksym
-    SaveModelAndQuit(sess,ModelName)
+    #SaveModelAndQuit(sess,ModelName)
+
+     # Export model
+    export_path_base = FLAGS.work_dir
+    export_path = os.path.join(tf.compat.as_bytes(export_path_base),tf.compat.as_bytes(str(FLAGS.model_version)))
+    #export_path = ModelName + '/' + export_path 
+    print('Exporting trained model to', export_path)
+    builder = tf.saved_model.builder.SavedModelBuilder(export_path)
+
+    tensor_info_x = tf.saved_model.utils.build_tensor_info(X)
+    tensor_info_y = tf.saved_model.utils.build_tensor_info(Out) #THIS IS IMPORTANT!!! NOT THE PLACEHOLDER!!!!!!!!
+
+    prediction_signature = (
+        tf.saved_model.signature_def_utils.build_signature_def(
+          inputs={'input': tensor_info_x},
+          outputs={'output': tensor_info_y},
+          method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME))
+
+    legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
+    builder.add_meta_graph_and_variables(
+        sess, [tf.saved_model.tag_constants.SERVING],
+        signature_def_map={
+          'prediction':
+              prediction_signature,
+      },
+      legacy_init_op=legacy_init_op)
+
+    builder.save()
+
+    print('Done exporting!')
+    sys.exit(0)
 
 
 TrainSVMLinearRegression(session,StockPriceMinute,'AMD',1,1)
