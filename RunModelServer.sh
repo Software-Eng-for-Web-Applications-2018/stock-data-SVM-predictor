@@ -1,4 +1,14 @@
 #! /bin/sh 
+
+#
+# CREATED BY JOHN GRUN
+#   APRIL 21 2018 
+#
+# TESTED BY JOHN GRUN
+#
+#MODIFIED BY JOHN GRUN 
+#
+
 tensorflow_model_server --port=9020 --model_name=SVMMODEL --model_base_path=$(pwd)/SVM_RT_AABA &
 tensorflow_model_server --port=9021 --model_name=SVMMODEL --model_base_path=$(pwd)/SVM_RT_AAPL &
 tensorflow_model_server --port=9022 --model_name=SVMMODEL --model_base_path=$(pwd)/SVM_RT_AMD &
