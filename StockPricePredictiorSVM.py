@@ -54,6 +54,14 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
 
     LengthOfDataSet = len(Xdata)
 
+    if(DEBUG == 1):
+        print("Xdata\n");
+        print(Xdata)
+        print("\n");
+        print("Ydata_train")
+        print(Ydata)
+        print("\n")
+
     train_start = 0
     train_end = int(np.floor(0.8*LengthOfDataSet))
     test_start = train_end + 1
@@ -82,8 +90,8 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
 
     #XdataTrainTest = [Xdata_train, Xdata_test]
     #Roll seems to be rolling several axes for some damn reason. 
-    Ydata_train = np.array([y[2] for y in Ydata_train])
-    Ydata_test = np.array([y[2] for y in Ydata_test])
+    Ydata_train = np.array([y[0] for y in Ydata_train])
+    Ydata_test = np.array([y[0] for y in Ydata_test])
 
     # YdataTrainTest = [Ydata_train, Ydata_test]
 
