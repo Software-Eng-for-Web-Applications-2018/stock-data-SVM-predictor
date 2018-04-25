@@ -15,7 +15,7 @@ from grpc.beta import implementations
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_service_pb2
 
-tf.app.flags.DEFINE_string('server', 'localhost:9001', 'PredictionService host:port')
+tf.app.flags.DEFINE_string('server', 'localhost:9020', 'PredictionService host:port')
 FLAGS = tf.app.flags.FLAGS
 
 app = Flask(__name__)
