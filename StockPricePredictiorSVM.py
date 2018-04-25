@@ -21,7 +21,7 @@ from tensorflow.python.framework import ops
 import sys
 from sklearn.preprocessing import MinMaxScaler
 
-from DatabaseORM import session, StockPriceMinute
+from DatabaseORM import session, StockPriceMinute, StockPriceDay
 from DataArrayTools import ShitftAmount,TrimArray
 from SupportPredictorFunctions import GetStockDataList, SaveModelAndQuit
 
@@ -32,11 +32,11 @@ tf.app.flags.DEFINE_string('work_dir', '', 'Working directory.')
 tf.app.flags.DEFINE_string('sym', '', 'Stock Symbol')  
 tf.app.flags.DEFINE_integer('shiftamount', 1, 'Amount of time we wish to attept to predict into the future')
 tf.app.flags.DEFINE_integer('DEBUG', 0, 'Enable the debugging output') 
-
+tf.app.flags.DEFINE_integer('RT', 0, 'Future 0 or Historical 1') 
 FLAGS = tf.app.flags.FLAGS
 
 
-def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,DEBUG):
+def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,DEBUG,typeString):
     # Create graph
     sess = tf.Session()
 
@@ -199,7 +199,7 @@ def TrainSVMLinearRegression(session,DatabaseTables,stocksym,RelativeTimeShift,D
     #SaveModelAndQuit(sess,ModelName)
 
      # Export model
-    export_path_base = FLAGS.work_dir + 'SVM_' + stocksym
+    export_path_base = FLAGS.work_dir + 'SVM_'+ typeString + '_'+stocksym
     export_path = os.path.join(tf.compat.as_bytes(export_path_base),tf.compat.as_bytes(str(FLAGS.model_version)))
     #export_path = ModelName + '/' + export_path 
     print('Exporting trained model to', export_path)
@@ -237,11 +237,15 @@ def main():
     parser.add_argument('--sym', dest= 'sym', default='');
     parser.add_argument('--DEBUG',type=int, dest= 'debug', default=0);
     parser.add_argument('--shiftamount',type=int, dest= 'shiftamount', default=1);
+    parser.add_argument('--RT',type=int, dest= 'history', default=0);
+
     args = parser.parse_args();
 
     print("Input Arguments: ") 
     print(args)
-
-    TrainSVMLinearRegression(session,StockPriceMinute,args.sym,args.shiftamount,args.debug);
+    if(args.history == 0):
+        TrainSVMLinearRegression(session,StockPriceMinute,args.sym,args.shiftamount,args.debug,'RT');
+    else:
+        TrainSVMLinearRegression(session,StockPriceDay,args.sym,args.shiftamount,args.debug,'PAST');
 
 main();
